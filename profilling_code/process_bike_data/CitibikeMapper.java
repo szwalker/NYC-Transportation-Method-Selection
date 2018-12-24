@@ -1,0 +1,507 @@
+import java.io.IOException;
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Mapper;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.util.Date;
+import java.text.SimpleDateFormat;
+import java.util.*;
+
+
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
+
+
+
+public class CitibikeMapper extends Mapper< LongWritable, Text, Text, Text > {
+    private static final int MISSING= 9999;//
+    private Hashtable<String,String> mapping;
+    
+    @Override
+    public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException{
+        try{
+            String line= value.toString();
+            if(line.length()<=5)
+                return;
+            //line = line.replaceAll("\t"," ");
+            //split the value by tab
+            String[] inputArr = line.split("\t");
+            
+            //create mapping
+            String INPUT_FILE = "location_mapping.csv";
+            createMapping(INPUT_FILE);
+            String startZone = lookUpArea(inputArr[3]);
+            String endZone = lookUpArea(inputArr[6]);
+            if(startZone==null||endZone==null)
+                return;
+            
+            //process input
+            //key: date,time,start_zone,end_zone  → with delimiter ‘!’
+            
+            
+            //get the date value
+            String dateTime = inputArr[1];
+            String[] dateTimeArr = inputArr[1].split("\\s+");
+            String date = dateTimeArr[0];
+            
+            //get the date string
+            dateTime = dateTime.substring(0, 19);
+            SimpleDateFormat format1=new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            Date dt1 = null;
+            try{
+                dt1 = format1.parse(dateTime);
+            }catch(ParseException e2){
+                System.err.println("error");
+            }
+            //see whether is weekdays and rush hour
+            int hour = Integer.parseInt(dateTime.substring(11,13));
+            DateFormat format2=new SimpleDateFormat("EEEE");
+            String finalDay=format2.format(dt1);
+            if(finalDay!="Saturday"&&finalDay!="Sunday"){
+                if(hour>7&&hour<9){
+                    context.write(new Text(date+"!0!"+startZone+"!"+endZone),new Text(inputArr[0]));
+                }
+                else if(hour>16&&hour<18){
+                    context.write(new Text(date+"!1!"+startZone+"!"+endZone),new Text(inputArr[0]));
+                }
+            }
+        }catch(Exception e){
+            return;
+        }
+        
+    }
+    
+    
+    
+    public void createMapping(String fileName){
+        mapping= new Hashtable<String,String>();
+        mapping.put("72","50");
+        mapping.put("79","211");
+        mapping.put("82","209");
+        mapping.put("127","249");
+        mapping.put("128","125");
+        mapping.put("146","231");
+        mapping.put("150","4");
+        mapping.put("151","144");
+        mapping.put("152","231");
+        mapping.put("161","211");
+        mapping.put("164","162");
+        mapping.put("167","170");
+        mapping.put("168","234");
+        mapping.put("173","164");
+        mapping.put("174","137");
+        mapping.put("195","209");
+        mapping.put("212","158");
+        mapping.put("216","209");
+        mapping.put("223","113");
+        mapping.put("228","162");
+        mapping.put("229","144");
+        mapping.put("236","79");
+        mapping.put("237","107");
+        mapping.put("238","249");
+        mapping.put("247","249");
+        mapping.put("248","125");
+        mapping.put("249","211");
+        mapping.put("251","144");
+        mapping.put("252","113");
+        mapping.put("253","113");
+        mapping.put("254","113");
+        mapping.put("257","45");
+        mapping.put("259","209");
+        mapping.put("260","12");
+        mapping.put("264","209");
+        mapping.put("265","144");
+        mapping.put("266","4");
+        mapping.put("267","100");
+        mapping.put("268","45");
+        mapping.put("276","231");
+        mapping.put("279","209");
+        mapping.put("280","113");
+        mapping.put("281","43");
+        mapping.put("284","158");
+        mapping.put("285","234");
+        mapping.put("291","148");
+        mapping.put("293","234");
+        mapping.put("295","232");
+        mapping.put("296","45");
+        mapping.put("297","107");
+        mapping.put("301","79");
+        mapping.put("302","4");
+        mapping.put("303","211");
+        mapping.put("304","12");
+        mapping.put("305","43");
+        mapping.put("306","209");
+        mapping.put("307","48");
+        mapping.put("308","45");
+        mapping.put("309","231");
+        mapping.put("311","48");
+        mapping.put("312","144");
+        mapping.put("315","209");
+        mapping.put("316","87");
+        mapping.put("317","79");
+        mapping.put("319","87");
+        mapping.put("320","211");
+        mapping.put("325","107");
+        mapping.put("326","79");
+        mapping.put("327","231");
+        mapping.put("328","125");
+        mapping.put("330","87");
+        mapping.put("331","232");
+        mapping.put("332","148");
+        mapping.put("334","68");
+        mapping.put("335","113");
+        mapping.put("336","211");
+        mapping.put("337","209");
+        mapping.put("339","4");
+        mapping.put("340","48");
+        mapping.put("341","4");
+        mapping.put("342","148");
+        mapping.put("345","113");
+        mapping.put("346","249");
+        mapping.put("347","125");
+        mapping.put("349","148");
+        mapping.put("350","48");
+        mapping.put("351","209");
+        mapping.put("355","45");
+        mapping.put("356","148");
+        mapping.put("357","113");
+        mapping.put("358","249");
+        mapping.put("360","209");
+        mapping.put("361","232");
+        mapping.put("362","163");
+        mapping.put("363","13");
+        mapping.put("368","249");
+        mapping.put("369","249");
+        mapping.put("376","209");
+        mapping.put("377","211");
+        mapping.put("379","186");
+        mapping.put("380","113");
+        mapping.put("382","107");
+        mapping.put("383","113");
+        mapping.put("386","45");
+        mapping.put("387","87");
+        mapping.put("388","68");
+        mapping.put("393","4");
+        mapping.put("394","4");
+        mapping.put("400","4");
+        mapping.put("401","144");
+        mapping.put("402","90");
+        mapping.put("403","144");
+        mapping.put("405","158");
+        mapping.put("408","232");
+        mapping.put("410","79");
+        mapping.put("411","4");
+        mapping.put("412","232");
+        mapping.put("415","87");
+        mapping.put("417","231");
+        mapping.put("422","142");
+        mapping.put("423","43");
+        mapping.put("426","231");
+        mapping.put("427","12");
+        mapping.put("432","79");
+        mapping.put("433","224");
+        mapping.put("435","68");
+        mapping.put("438","79");
+        mapping.put("439","79");
+        mapping.put("440","162");
+        mapping.put("441","162");
+        mapping.put("442","186");
+        mapping.put("445","79");
+        mapping.put("446","68");
+        mapping.put("447","43");
+        mapping.put("448","100");
+        mapping.put("450","50");
+        mapping.put("453","68");
+        mapping.put("454","162");
+        mapping.put("455","162");
+        mapping.put("456","164");
+        mapping.put("457","43");
+        mapping.put("458","68");
+        mapping.put("459","68");
+        mapping.put("461","107");
+        mapping.put("462","68");
+        mapping.put("465","163");
+        mapping.put("466","68");
+        mapping.put("468","43");
+        mapping.put("469","43");
+        mapping.put("470","68");
+        mapping.put("472","170");
+        mapping.put("473","144");
+        mapping.put("474","90");
+        mapping.put("476","137");
+        mapping.put("477","100");
+        mapping.put("478","50");
+        mapping.put("479","50");
+        mapping.put("480","50");
+        mapping.put("482","158");
+        mapping.put("483","107");
+        mapping.put("484","163");
+        mapping.put("485","163");
+        mapping.put("486","186");
+        mapping.put("487","4");
+        mapping.put("491","90");
+        mapping.put("494","186");
+        mapping.put("495","50");
+        mapping.put("496","234");
+        mapping.put("497","234");
+        mapping.put("498","186");
+        mapping.put("499","142");
+        mapping.put("500","43");
+        mapping.put("501","233");
+        mapping.put("502","148");
+        mapping.put("503","107");
+        mapping.put("504","107");
+        mapping.put("505","163");
+        mapping.put("507","107");
+        mapping.put("508","50");
+        mapping.put("509","68");
+        mapping.put("513","43");
+        mapping.put("514","50");
+        mapping.put("515","50");
+        mapping.put("516","233");
+        mapping.put("517","164");
+        mapping.put("518","170");
+        mapping.put("519","164");
+        mapping.put("520","164");
+        mapping.put("522","164");
+        mapping.put("523","100");
+        mapping.put("524","230");
+        mapping.put("525","100");
+        mapping.put("526","90");
+        mapping.put("527","137");
+        mapping.put("528","137");
+        mapping.put("529","100");
+        mapping.put("530","142");
+        mapping.put("531","144");
+        mapping.put("533","163");
+        mapping.put("534","12");
+        mapping.put("536","137");
+        mapping.put("537","107");
+        mapping.put("540","137");
+        mapping.put("545","107");
+        mapping.put("546","137");
+        mapping.put("2003","107");
+        mapping.put("2006","43");
+        mapping.put("2008","12");
+        mapping.put("2009","209");
+        mapping.put("2010","211");
+        mapping.put("2012","137");
+        mapping.put("2021","50");
+        mapping.put("2022","229");
+        mapping.put("2023","43");
+        mapping.put("3002","13");
+        mapping.put("3085","232");
+        mapping.put("3122","170");
+        mapping.put("3131","140");
+        mapping.put("3132","43");
+        mapping.put("3134","140");
+        mapping.put("3135","236");
+        mapping.put("3136","43");
+        mapping.put("3137","43");
+        mapping.put("3139","43");
+        mapping.put("3140","229");
+        mapping.put("3141","140");
+        mapping.put("3142","140");
+        mapping.put("3143","43");
+        mapping.put("3144","236");
+        mapping.put("3145","236");
+        mapping.put("3146","236");
+        mapping.put("3147","43");
+        mapping.put("3148","262");
+        mapping.put("3150","262");
+        mapping.put("3151","262");
+        mapping.put("3152","140");
+        mapping.put("3155","43");
+        mapping.put("3156","229");
+        mapping.put("3157","262");
+        mapping.put("3158","142");
+        mapping.put("3159","43");
+        mapping.put("3160","43");
+        mapping.put("3161","43");
+        mapping.put("3162","43");
+        mapping.put("3163","43");
+        mapping.put("3164","43");
+        mapping.put("3165","43");
+        mapping.put("3166","43");
+        mapping.put("3167","43");
+        mapping.put("3168","43");
+        mapping.put("3169","43");
+        mapping.put("3170","43");
+        mapping.put("3171","43");
+        mapping.put("3172","43");
+        mapping.put("3175","43");
+        mapping.put("3176","142");
+        mapping.put("3177","43");
+        mapping.put("3178","43");
+        mapping.put("3180","209");
+        mapping.put("3182","4");
+        mapping.put("3223","43");
+        mapping.put("3224","158");
+        mapping.put("3226","43");
+        mapping.put("3231","140");
+        mapping.put("3233","164");
+        mapping.put("3235","161");
+        mapping.put("3236","50");
+        mapping.put("3239","12");
+        mapping.put("3243","162");
+        mapping.put("3244","249");
+        mapping.put("3245","148");
+        mapping.put("3254","4");
+        mapping.put("3256","125");
+        mapping.put("3258","68");
+        mapping.put("3259","68");
+        mapping.put("3260","211");
+        mapping.put("3263","107");
+        mapping.put("3282","43");
+        mapping.put("3283","43");
+        mapping.put("3284","43");
+        mapping.put("3285","43");
+        mapping.put("3286","43");
+        mapping.put("3288","262");
+        mapping.put("3289","43");
+        mapping.put("3290","262");
+        mapping.put("3292","43");
+        mapping.put("3293","151");
+        mapping.put("3294","43");
+        mapping.put("3295","43");
+        mapping.put("3296","43");
+        mapping.put("3299","43");
+        mapping.put("3301","43");
+        mapping.put("3302","43");
+        mapping.put("3305","262");
+        mapping.put("3307","151");
+        mapping.put("3309","43");
+        mapping.put("3312","262");
+        mapping.put("3314","151");
+        mapping.put("3316","43");
+        mapping.put("3318","43");
+        mapping.put("3320","43");
+        mapping.put("3323","43");
+        mapping.put("3325","43");
+        mapping.put("3327","43");
+        mapping.put("3328","43");
+        mapping.put("3331","24");
+        mapping.put("3336","43");
+        mapping.put("3338","43");
+        mapping.put("3341","43");
+        mapping.put("3343","43");
+        mapping.put("3345","43");
+        mapping.put("3350","151");
+        mapping.put("3351","43");
+        mapping.put("3355","43");
+        mapping.put("3356","142");
+        mapping.put("3357","24");
+        mapping.put("3359","140");
+        mapping.put("3360","43");
+        mapping.put("3362","43");
+        mapping.put("3363","43");
+        mapping.put("3366","24");
+        mapping.put("3367","43");
+        mapping.put("3369","262");
+        mapping.put("3370","236");
+        mapping.put("3372","229");
+        mapping.put("3374","43");
+        mapping.put("3375","236");
+        mapping.put("3376","140");
+        mapping.put("3378","43");
+        mapping.put("3379","43");
+        mapping.put("3383","166");
+        mapping.put("3387","43");
+        mapping.put("3390","74");
+        mapping.put("3391","74");
+        mapping.put("3400","43");
+        mapping.put("3424","43");
+        mapping.put("3425","43");
+        mapping.put("3427","144");
+        mapping.put("3431","170");
+        mapping.put("3434","43");
+        mapping.put("3435","144");
+        mapping.put("3437","151");
+        mapping.put("3438","229");
+        mapping.put("3441","186");
+        mapping.put("3443","164");
+        mapping.put("3447","140");
+        mapping.put("3455","232");
+        mapping.put("3457","43");
+        mapping.put("3459","162");
+        mapping.put("3461","231");
+        mapping.put("3462","233");
+        mapping.put("3463","107");
+        mapping.put("3466","230");
+        mapping.put("3468","4");
+        mapping.put("3472","158");
+        mapping.put("3474","211");
+        mapping.put("3479","4");
+        mapping.put("3485","4");
+        mapping.put("3488","120");
+        mapping.put("3489","209");
+        mapping.put("3490","74");
+        mapping.put("3491","74");
+        mapping.put("3492","74");
+        mapping.put("3493","74");
+        mapping.put("3494","74");
+        mapping.put("3495","74");
+        mapping.put("3496","74");
+        mapping.put("3497","74");
+        mapping.put("3498","74");
+        mapping.put("3499","74");
+        mapping.put("3500","43");
+        mapping.put("3501","74");
+        mapping.put("3502","43");
+        mapping.put("3503","74");
+        mapping.put("3504","74");
+        mapping.put("3505","74");
+        mapping.put("3506","74");
+        mapping.put("3507","74");
+        mapping.put("3508","152");
+        mapping.put("3509","43");
+        mapping.put("3510","42");
+        mapping.put("3511","42");
+        mapping.put("3518","43");
+        mapping.put("3520","42");
+        mapping.put("3521","43");
+        mapping.put("3527","41");
+        mapping.put("3529","41");
+        mapping.put("3531","152");
+        mapping.put("3533","152");
+        mapping.put("3534","42");
+        mapping.put("3535","43");
+        mapping.put("3536","166");
+        mapping.put("3538","43");
+        mapping.put("3539","166");
+        mapping.put("3540","152");
+        mapping.put("3541","152");
+        mapping.put("3542","166");
+        mapping.put("3543","152");
+        mapping.put("3545","166");
+        mapping.put("3547","152");
+        mapping.put("3551","74");
+        mapping.put("3552","166");
+        mapping.put("3553","42");
+        mapping.put("3622","74");
+        mapping.put("3628","43");
+        mapping.put("3629","42");
+        mapping.put("3632","4");
+        mapping.put("3635","100");
+        mapping.put("3641","68");
+        mapping.put("3643","161");
+        mapping.put("3649","152");
+        mapping.put("3656","79");
+        mapping.put("3658","158");
+        mapping.put("3659","158");
+        mapping.put("3660","113");
+        mapping.put("3664","231");
+        mapping.put("3671","236");
+    }
+    
+    public String lookUpArea(String input){
+        String bikeLocation = input;
+        return mapping.get(bikeLocation);
+    }
+    
+    
+}
